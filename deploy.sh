@@ -10,6 +10,7 @@ IMAGE="gcr.io/$GCP_PROJECT/$SERVICE_NAME"
 gcloud auth activate-service-account --key-file=$GCP_SA_KEY_PATH
 gcloud config set project $GCP_PROJECT
 gcloud auth configure-docker
+gcloud services enable drive.googleapis.com --project=$GCP_PROJECT
 
 # Build & push Docker image
 docker build --platform=linux/amd64 -t $IMAGE .
@@ -22,4 +23,6 @@ gcloud run deploy $SERVICE_NAME \
   --project $GCP_PROJECT \
   --platform managed \
   --allow-unauthenticated \
-  --set-env-vars "GMAIL_CREDENTIALS_JSON=$GMAIL_CREDENTIALS_JSON,VAULT_FOLDER_ID=$VAULT_FOLDER_ID"
+  --set-env-vars "GMAIL_CREDENTIALS_JSON=$GMAIL_CREDENTIALS_JSON,VAULT_FOLDER_ID=$VAULT_FOLDER_ID" \
+  --set-secrets "usr/src/app/secrets/service-account/service-account.json=vault-curator-sa:latest" \
+  --set-secrets "usr/src/app/secrets/token/token.pkl=vault-curator-user-token:latest"

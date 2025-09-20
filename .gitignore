@@ -1,2 +1,4 @@
 secrets/service-account.json
+secrets/oauth2-credentials.json
+secrets/token.pkl
 secrets/.env
