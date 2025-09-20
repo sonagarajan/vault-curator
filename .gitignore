@@ -1,4 +1,4 @@
-secrets/service-account.json
-secrets/oauth2-credentials.json
-secrets/token.pkl
+secrets/service-account/service-account.json
+secrets/token/oauth2-credentials.json
+secrets/token/token.pkl
 secrets/.env

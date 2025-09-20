@@ -14,6 +14,7 @@
 
 ```
 gcloud secrets create vault-curator-sa --data-file=secrets/service-account.json
+
 gcloud secrets create vault-curator-user-token --data-file=secrets/token.pkl
 ```
 

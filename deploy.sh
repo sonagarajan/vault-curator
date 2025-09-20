@@ -23,6 +23,5 @@ gcloud run deploy $SERVICE_NAME \
   --project $GCP_PROJECT \
   --platform managed \
   --allow-unauthenticated \
-  --set-env-vars "GMAIL_CREDENTIALS_JSON=$GMAIL_CREDENTIALS_JSON,VAULT_FOLDER_ID=$VAULT_FOLDER_ID" \
-  --set-secrets "usr/src/app/secrets/service-account/service-account.json=vault-curator-sa:latest" \
-  --set-secrets "usr/src/app/secrets/token/token.pkl=vault-curator-user-token:latest"
+  --set-secrets "/usr/src/app/secrets/service-account/service-account.json=vault-curator-sa:latest" \
+  --set-secrets "/usr/src/app/secrets/token/token.pkl=vault-curator-user-token:latest"

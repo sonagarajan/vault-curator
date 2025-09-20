@@ -8,13 +8,12 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 
 # Load env variables from secrets folder
-load_dotenv(dotenv_path="secrets/.env")
+load_dotenv(dotenv_path="/usr/src/app/secrets/.env")
 
 app = Flask(__name__)
 
-
 # Load service account path from .env
-BASE_PATH = "usr/src/app/"
+BASE_PATH = "/usr/src/app/"
 SERVICE_ACCOUNT_FILE = BASE_PATH + os.environ.get("GCP_SA_KEY_PATH")
 TOKEN_PATH = BASE_PATH + os.environ.get("GCP_OAUTH_TOKEN_PATH")
 VAULT_FOLDER_ID = os.environ.get("VAULT_FOLDER_ID")

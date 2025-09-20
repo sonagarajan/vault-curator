@@ -17,4 +17,4 @@ creds = flow.run_local_server(port=0)
 with open('secrets/token/token.pkl', 'wb') as token:
     pickle.dump(creds, token)
 
-print("Token saved to secrets/token.pkl")
+print("Token saved to secrets/token/token.pkl")
