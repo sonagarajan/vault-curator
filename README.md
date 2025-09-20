@@ -12,11 +12,18 @@
 6. secret accessor role for service account
 7. Upload creds to secrets
 
+gcloud pubsub topics create gmail-vault-notes
+gcloud pubsub subscriptions create gmail-vault-sub --topic gmail-vault-notes
+
 ```
 gcloud secrets create vault-curator-sa --data-file=secrets/service-account.json
 
 gcloud secrets create vault-curator-user-token --data-file=secrets/token.pkl
 ```
+
+gcloud pubsub topics add-iam-policy-binding gmail-vault-notes \
+  --member="serviceAccount:gmail-api-push@system.gserviceaccount.com" \
+  --role="roles/pubsub.publisher"
 
 4. Put values in secrets/.env
 

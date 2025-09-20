@@ -6,6 +6,8 @@ from dotenv import load_dotenv
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
+from google.auth.transport.requests import Request
+
 
 # Load env variables from secrets folder
 load_dotenv(dotenv_path="/usr/src/app/secrets/.env")
@@ -23,6 +25,11 @@ def upload_to_drive(filename, mimetype="text/markdown"):
     """Uploads a local file to Google Drive in the vault folder."""
     with open(TOKEN_PATH, "rb") as token_file:
         creds = pickle.load(token_file)
+
+    # Auto-refresh access token if expired
+    if creds.expired and creds.refresh_token:
+        creds.refresh(Request())
+
     service = build("drive", "v3", credentials=creds)
 
     file_metadata = {
