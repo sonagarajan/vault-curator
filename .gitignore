@@ -2,3 +2,5 @@ secrets/service-account/service-account.json
 secrets/token/oauth2-credentials.json
 secrets/token/token.pkl
 secrets/.env
+
+venv/
