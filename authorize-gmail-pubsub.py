@@ -9,11 +9,10 @@ load_dotenv(dotenv_path="secrets/.env")
 TOKEN_PATH = os.environ.get("GCP_OAUTH_TOKEN_PATH")
 PROJECT_ID = os.environ.get("GCP_PROJECT")
 GMAIL_PUBSUB_TOPIC_NAME = os.environ.get("GMAIL_PUBSUB_TOPIC_NAME")
-GMAIL_FILTER_NAME = os.environ.get("GMAIL_FILTER_NAME")
+GMAIL_LABEL_NAME = os.environ.get("GMAIL_FILTER_NAME")
 
 
-def get_label(service, user_id, label_name):
-    """Fetch the label ID if it exists, else create it."""
+def get_label_id(service, user_id, label_name):
     labels = service.users().labels().list(userId=user_id).execute()
     for label in labels.get("labels", []):
         if label["name"] == label_name:
@@ -25,7 +24,7 @@ def get_label(service, user_id, label_name):
 
 def setup_gmail_watch(creds, topic_name):
     gmail_service = build("gmail", "v1", credentials=creds)
-    label_id = get_label(gmail_service, "me", GMAIL_FILTER_NAME)
+    label_id = get_label_id(gmail_service, "me", GMAIL_LABEL_NAME)
     body = {
         "labelIds": [label_id],
         "topicName": topic_name

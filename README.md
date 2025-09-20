@@ -13,12 +13,15 @@
 7. Upload creds to secrets
 
 gcloud pubsub topics create gmail-vault-notes
-gcloud pubsub subscriptions create gmail-vault-sub --topic gmail-vault-notes
-
+gcloud pubsub subscriptions create gmail-vault-sub \
+  --topic=gmail-vault-notes \
+  --push-endpoint="https://YOUR_CLOUD_RUN_URL/"
 ```
-gcloud secrets create vault-curator-sa --data-file=secrets/service-account.json
+gcloud secrets create vault-curator-sa --data-file=secrets/service-account/service-account.json
 
-gcloud secrets create vault-curator-user-token --data-file=secrets/token.pkl
+gcloud secrets create vault-curator-user-token --data-file=secrets/oauth-token/token.pkl
+
+gcloud secrets versions add vault-curator-user-token --data-file=secrets/oauth-token/token.pkl
 ```
 
 gcloud pubsub topics add-iam-policy-binding gmail-vault-notes \
