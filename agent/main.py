@@ -49,6 +49,19 @@ def get_label_id():
 LABEL_ID = get_label_id()
 
 
+def get_email_text(msg):
+    payload = msg.get("payload", {})
+    parts = payload.get("parts", [])
+
+    for part in parts:
+        if part.get("mimeType") == "text/plain":
+            data = part["body"]["data"]
+            return base64.urlsafe_b64decode(data).decode("utf-8")
+
+    # fallback: use snippet if no plain text
+    return msg.get("snippet", "")
+
+
 def fetch_latest_email_added():
     gmail_service = build("gmail", "v1", credentials=get_creds())
     results = gmail_service.users().messages().list(
@@ -70,14 +83,15 @@ def fetch_latest_email_added():
         userId="me", id=msg_id, format="full"
     ).execute()
 
+    note_text = get_email_text(full_msg)
+
+    # Mark message as read
     gmail_service.users().messages().modify(
         userId="me",
         id=msg_id,
         body={"removeLabelIds": ["UNREAD"]}
     ).execute()
 
-    # Process snippet or body
-    note_text = full_msg.get("snippet")
     return note_text, msg_id
 
 
@@ -119,7 +133,7 @@ def pubsub_push():
     note_text, msg_id = fetch_latest_email_added()
     if note_text:
         # Save note to a temporary file
-        note_filename = "/tmp/note" + str(msg_id) + ".md"
+        note_filename = "/tmp/note-" + str(msg_id) + ".md"
         with open(note_filename, "w") as f:
             f.write(note_text)
 
