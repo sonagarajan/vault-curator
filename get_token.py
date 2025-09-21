@@ -10,7 +10,7 @@ TOKEN_PATH = os.environ.get("GCP_OAUTH_TOKEN_PATH")
 CREDENTIALS_PATH = os.environ.get("GCP_OAUTH_CREDENTIALS_PATH")
 
 SCOPES = ['https://www.googleapis.com/auth/drive.file',
-          'https://www.googleapis.com/auth/gmail.readonly']
+          'https://www.googleapis.com/auth/gmail.modify',]
 
 creds = None
 flow = InstalledAppFlow.from_client_secrets_file(CREDENTIALS_PATH, SCOPES)
