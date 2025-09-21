@@ -98,8 +98,7 @@ def fetch_latest_email_added(last_history_id=None):
     gmail_service = build("gmail", "v1", credentials=get_creds())
     results = gmail_service.users().history().list(
         userId="me",
-        startHistoryId=last_history_id + 1 if last_history_id else None,
-        historyTypes=["labelAdded"],
+        startHistoryId=last_history_id+1,
         labelId=LABEL_ID,
     ).execute()
 
@@ -190,7 +189,7 @@ def pubsub_push():
         # First run: just initialize state
         history_file_id = save_last_history_id(drive_service, VAULT_FOLDER_ID,
                                                current_history_id, history_file_id)
-        last_history_id = current_history_id - 10
+        last_history_id = current_history_id - 1
 
     elif current_history_id <= last_history_id:
         # Already processed
