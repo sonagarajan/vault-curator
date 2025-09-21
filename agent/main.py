@@ -4,12 +4,12 @@ from flask import Flask, jsonify, request
 from dotenv import load_dotenv
 import base64
 import json
+import io
 
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
-from googleapiclient.http import MediaFileUpload
+from googleapiclient.http import MediaFileUpload, MediaIoBaseUpload, MediaIoBaseDownload
 from google.auth.transport.requests import Request
-
 
 # Load env variables from secrets folder
 load_dotenv(dotenv_path="/usr/src/app/secrets/.env")
@@ -35,6 +35,51 @@ def get_creds():
     return CREDS
 
 
+STATE_FILE = "gmail_state.json"
+
+
+def load_last_history_id(drive_service, folder_id):
+    """Load last historyId from Drive, return None if not found."""
+    query = f"name='{STATE_FILE}' and '{folder_id}' in parents and trashed=false"
+    results = drive_service.files().list(q=query, fields="files(id)").execute()
+    files = results.get("files", [])
+
+    if not files:
+        return None, None
+
+    file_id = files[0]["id"]
+    request = drive_service.files().get_media(fileId=file_id)
+    fh = io.BytesIO()
+    downloader = MediaIoBaseDownload(fh, request)
+    done = False
+    while not done:
+        status, done = downloader.next_chunk()
+
+    fh.seek(0)
+    print("Loaded state file from Drive:", fh)
+    state = json.load(fh)
+    return state.get("last_history_id"), file_id
+
+
+def save_last_history_id(drive_service, folder_id, current_history_id, file_id=None):
+    """Save updated last historyId back to Drive."""
+    last_history_id, file_id = load_last_history_id(drive_service, folder_id)
+    if last_history_id is not None and last_history_id >= current_history_id:
+        return file_id
+    state = {"last_history_id": current_history_id}
+    body = {"name": STATE_FILE, "parents": [folder_id]}
+    media = MediaIoBaseUpload(io.BytesIO(json.dumps(state).encode("utf-8")),
+                              mimetype="application/json",
+                              resumable=True)
+
+    if file_id:
+        drive_service.files().update(fileId=file_id, media_body=media).execute()
+        return file_id
+    else:
+        file = drive_service.files().create(body=body, media_body=media).execute()
+        return file["id"]
+
+
 def get_label_id():
     gmail_service = build("gmail", "v1", credentials=get_creds())
     labels = gmail_service.users().labels().list(userId="me").execute()
@@ -49,33 +94,48 @@ def get_label_id():
 LABEL_ID = get_label_id()
 
 
-def fetch_latest_email_by_label():
+def fetch_latest_email_added(last_history_id=None):
     gmail_service = build("gmail", "v1", credentials=get_creds())
-    results = gmail_service.users().messages().list(
+    results = gmail_service.users().history().list(
         userId="me",
-        labelIds=[LABEL_ID],
-        maxResults=1
+        startHistoryId=last_history_id + 1 if last_history_id else None,
+        historyTypes=["labelAdded"],
+        labelId=LABEL_ID,
     ).execute()
 
-    messages = results.get("messages", [])
-    if messages:
-        msg = gmail_service.users().messages().get(
-            userId="me",
-            id=messages[0]["id"],
-            format="full"
-        ).execute()
+    history_records = results.get("history", [])
+    if not history_records:
+        print("No new emails found with the specified label.")
+        return None
 
-        print("Fetched email:", msg)
+    print(f"Found {len(history_records)} history records.")
+    print("history_records:", history_records)
 
-        # import email
-        # import base64
-        # msg_str = base64.urlsafe_b64decode(msg["payload"]["body"]["data"])
-        # mime_msg = email.message_from_bytes(msg_str)
-        # note_text = mime_msg.get_payload()
-        note_text = msg["snippet"]
-        return note_text
+    # TODO: handle all messages in history
+    # Prefer messagesAdded
+    if "messagesAdded" in history_records[-1]:
+        msg_id = history_records[0]["messagesAdded"][0]["message"]["id"]
 
-    ValueError("No new emails found with the specified label.")
+    # Fallback to plain messages
+    elif "messages" in history_records[0]:
+        msg_id = history_records[-1]["messages"][0]["id"]
+
+    msg = gmail_service.users().messages().get(
+        userId="me",
+        id=msg_id,
+        format="full"
+    ).execute()
+    # Quick preview
+    note_text = msg.get("snippet", "")
+
+    # Optional: decode full message body
+    # if "data" in msg["payload"]["body"]:
+    #     import base64, email
+    #     msg_str = base64.urlsafe_b64decode(msg["payload"]["body"]["data"])
+    #     mime_msg = email.message_from_bytes(msg_str)
+    #     note_text = mime_msg.get_payload()
+
+    return note_text
 
 
 def upload_to_drive(filename, mimetype="text/markdown"):
@@ -116,21 +176,43 @@ def pubsub_push():
     pubsub_msg = envelope["message"]
     data = base64.b64decode(pubsub_msg["data"]).decode("utf-8")
     payload = json.loads(data)
-    history_id = payload.get("historyId")
+    current_history_id = payload.get("historyId")
+
+    drive_service = build("drive", "v3", credentials=get_creds())
+
+    last_history_id, history_file_id = load_last_history_id(
+        drive_service, VAULT_FOLDER_ID)
+
+    print("Current history ID:", current_history_id,
+          "Last history ID:", last_history_id)
+
+    if last_history_id is None:
+        # First run: just initialize state
+        history_file_id = save_last_history_id(drive_service, VAULT_FOLDER_ID,
+                                               current_history_id, history_file_id)
+        last_history_id = current_history_id - 10
+
+    elif current_history_id <= last_history_id:
+        # Already processed
+        return "OK", 200
 
     print("Pub/Sub data:", data)
 
-    note_text = fetch_latest_email_by_label()
+    note_text = fetch_latest_email_added(last_history_id)
     if note_text:
         # Save note to a temporary file
-        note_filename = "/tmp/note" + str(history_id) + ".md"
+        note_filename = "/tmp/note" + str(current_history_id) + ".md"
         with open(note_filename, "w") as f:
             f.write(note_text)
 
-        file_id = upload_to_drive(note_filename)
-        print(f"Uploaded note to Drive with file ID: {file_id}")
+        text_file_id = upload_to_drive(note_filename)
+        print(f"Uploaded note to Drive with file ID: {text_file_id}")
     else:
         print("No note text found in the latest email.")
+
+    print("Updating last history ID to:", current_history_id)
+    save_last_history_id(drive_service, VAULT_FOLDER_ID,
+                         current_history_id, history_file_id)
 
     return "OK", 200
 
