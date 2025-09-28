@@ -4,10 +4,6 @@ Send notes to gmail and get it saved in obsidian.
 
 WIP - loading existing obsidian folder structure/tags/templates (as embeddings) and save file into corresponding folder using AI.
 
-<a href="https://www.youtube.com/watch?v=gNnPRcGRS3c">
-  <img src="https://img.youtube.com/vi/gNnPRcGRS3c/1.jpg" alt="Vault Curator Demo" width="400"/>
-</a>
-
 [Watch Demo](https://www.youtube.com/watch?v=gNnPRcGRS3c)
 
 ## Setup and requirements
