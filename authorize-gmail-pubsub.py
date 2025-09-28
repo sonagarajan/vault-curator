@@ -9,7 +9,7 @@ load_dotenv(dotenv_path="secrets/.env")
 TOKEN_PATH = os.environ.get("GCP_OAUTH_TOKEN_PATH")
 PROJECT_ID = os.environ.get("GCP_PROJECT")
 GMAIL_PUBSUB_TOPIC_NAME = os.environ.get("GMAIL_PUBSUB_TOPIC_NAME")
-GMAIL_LABEL_NAME = os.environ.get("GMAIL_FILTER_NAME")
+GMAIL_LABEL_NAME = os.environ.get("GMAIL_LABEL_NAME")
 
 
 def get_label_id(service, user_id, label_name):
