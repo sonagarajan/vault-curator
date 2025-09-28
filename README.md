@@ -1,5 +1,11 @@
 # vault-curator
 
+Send notes to gmail and get it saved in obsidian.
+
+WIP - loading existing obsidian folder structure/tags/templates (as embeddings) and save file into a folder using AI.
+
+[Watch Demo](demo/gmail-obsidian-demo.mp4)
+
 ## Setup and requirements
 
 1. Create project

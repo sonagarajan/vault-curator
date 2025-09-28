@@ -1,5 +1,6 @@
 import os
 import pickle
+import re
 from flask import Flask, jsonify, request
 from dotenv import load_dotenv
 from google.auth.transport.requests import Request
@@ -34,6 +35,10 @@ def get_creds():
 LABEL_ID = get_label_id(GMAIL_LABEL_NAME, get_creds())
 
 
+def construct_frontmatter_tags():
+    return "---\ntags:\nMoC:\n---\n\n"
+
+
 @app.route("/")
 def home():
     return jsonify({
@@ -54,16 +59,41 @@ def pubsub_push():
     if not envelope:
         return "Bad Request: no JSON", 400
 
-    note_text, msg_id = fetch_latest_email_added(LABEL_ID, get_creds())
-    if note_text:
-        # Save note to a temporary file
-        note_filename = "/tmp/note-" + str(msg_id) + ".md"
-        with open(note_filename, "w") as f:
-            f.write(note_text)
+    email_text, msg_id = fetch_latest_email_added(LABEL_ID, get_creds())
+    if email_text:
+        """
+        Split email text by '---' and save each part as a separate note in Drive.
+        The first line of each part becomes the title/filename.
+        """
+        # Split by delimiter
+        parts = [part.strip()
+                 for part in email_text.split("---") if part.strip()]
 
-        text_file_id = upload_to_drive(
-            note_filename, VAULT_FOLDER_ID, get_creds())
-        print(f"Uploaded note to Drive with file ID: {text_file_id}")
+        for idx, part in enumerate(parts):
+            lines = part.splitlines()
+            if not lines:
+                continue
+
+            # First line as title
+            title = lines[0].strip()
+            title = re.sub(r"[*_`]", "", title)  # Remove markdown chars
+            if not title:
+                title = f"Note-{idx+1}"
+
+            # Front matter template for tags
+            front_matter_tags = construct_frontmatter_tags()
+
+            # Everything after first line is the body
+            body_text = "## Notes\n\n" + "\n".join(lines[1:]).strip()
+            note_content = front_matter_tags + body_text
+
+            note_filename = "/tmp/note-" + str(msg_id) + ".md"
+            with open(note_filename, "w") as f:
+                f.write(note_content)
+
+            text_file_id = upload_to_drive(
+                note_filename, title, VAULT_FOLDER_ID, get_creds())
+            print(f"Uploaded note to Drive with file ID: {text_file_id}")
 
     return "OK", 200
 

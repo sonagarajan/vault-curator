@@ -21,6 +21,9 @@ gcloud run deploy $SERVICE_NAME \
   --image $IMAGE \
   --region $GCP_REGION \
   --project $GCP_PROJECT \
+  --memory=256Mi \
+  --cpu=1 \
+  --max-instances=1 \
   --platform managed \
   --allow-unauthenticated \
   --set-secrets "/usr/src/app/secrets/service-account/service-account.json=vault-curator-sa:latest" \
