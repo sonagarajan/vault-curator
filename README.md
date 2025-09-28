@@ -1,6 +1,6 @@
 # vault-curator
 
-Send notes to gmail and get it saved in obsidian.
+Send notes to gmail and get it saved in obsidian. Using google drive folder as obsidian vault.
 
 WIP - loading existing obsidian folder structure/tags/templates (as embeddings) and save file into corresponding folder using AI.
 
